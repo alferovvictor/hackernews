@@ -1,5 +1,6 @@
 ﻿using HackerNews.WebAPI.Entities;
 using HackerNews.WebAPI.Repositories;
+using System.Diagnostics;
 
 namespace HackerNews.WebAPI.Services;
 
@@ -21,41 +22,52 @@ public class HackerNewsService
 
     public async Task Init()
     {
+        var sw = Stopwatch.StartNew();
+
         _logger.LogInformation("Init start...");
 
         var ids = await _httpClient.GetFromJsonAsync<ulong[]>("beststories.json") ?? Array.Empty<ulong>();
 
-        var tasks = ids.AsParallel()
-            .Select(async id =>
+        var tasks = ids
+            .AsParallel()
+            .Select(id =>
             {
-                var item = await _httpClient.GetFromJsonAsync<HackerNewsDto>($"item/{id}.json");
-
-                if (item is null)
+                return _httpClient
+                .GetFromJsonAsync<HackerNewsDto>($"item/{id}.json")
+                .ContinueWith(res =>
                 {
-                    return null;
-                }
+                    var item = res.Result;
 
-                return new HackerNewsEntity
-                {
-                    ID = id,
-                    CommentCount = item!.kids.Length,
-                    PostedBy = item.by,
-                    Score = item.score,
-                    Time = DateTimeOffset.FromUnixTimeSeconds(item.time).DateTime,
-                    Title = item.title,
-                    Uri = item.url,
-                };
+					_logger.LogDebug($"item/{id} loaded");
+
+					if (item is null)
+					{
+						return null;
+					}
+
+					return new HackerNewsEntity
+					{
+						ID = id,
+						CommentCount = item!.kids.Length,
+						PostedBy = item.by,
+						Score = item.score,
+						Time = DateTimeOffset.FromUnixTimeSeconds(item.time).DateTime,
+						Title = item.title,
+						Uri = item.url,
+					};
+				});                
             });
 
         await Task.WhenAll(tasks);
-
 
         var items = tasks
 			.Select(i => i.Result)
             .Where(i => i is not null)
             .ToArray();
 
-        _hackerNewsRepository.AddRange(items!);
+		_logger.LogInformation($"Total news: {ids.Length}, Loaded: {items.Length}. Elapsed: {sw.Elapsed.TotalSeconds}s");
+
+		_hackerNewsRepository.AddRange(items!);
 
         _logger.LogInformation("Init end");
     }
