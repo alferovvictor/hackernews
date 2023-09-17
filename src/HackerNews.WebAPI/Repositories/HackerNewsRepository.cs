@@ -8,7 +8,7 @@ using TNewsId = UInt64;
 
 public class HackerNewsRepository : IHackerNewsProvider
 {
-    private Dictionary<TNewsId, TNewsEntity> _news = new Dictionary<TNewsId, TNewsEntity>();
+    private Dictionary<TNewsId, TNewsEntity> _news { get; } = new Dictionary<TNewsId, TNewsEntity>();
     private TNewsEntity[] _newsByScore = Array.Empty<TNewsEntity>();
 
     public void AddRange(IEnumerable<TNewsEntity> news)
