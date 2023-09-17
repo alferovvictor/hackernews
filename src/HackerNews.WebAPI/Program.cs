@@ -1,10 +1,10 @@
 using HackerNews.WebAPI;
-using HackerNews.WebAPI.Entities;
+using HackerNews.WebAPI.Dtos;
+using HackerNews.WebAPI.Providers;
 using HackerNews.WebAPI.Repositories;
 using HackerNews.WebAPI.Services;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
-using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,9 +39,9 @@ await app.Services.GetService<HackerNewsService>()!.Init();
 app
 	.MapGet("/stories/{count:int}", (
 		int count,
-		HackerNewsRepository hackerNewsRepository) =>
+		IHackerNewsProvider hackerNewsProvider) =>
 	{
-		return count > 0 ? hackerNewsRepository.NewsByScore().Take(count) : Array.Empty<HackerNewsEntity>();
+		return hackerNewsProvider.NewsByScore(count).Select(i => (HackerNewsDto)i);
 	})
 	.CacheOutput();
 
@@ -51,8 +51,8 @@ Task.Factory.StartNew(async () =>
 	{
 		await Task.Delay(TimeSpan.FromSeconds(1));
 
-		var server = app.Services.GetService<IServer>();
-		var addressFeature = server.Features.Get<IServerAddressesFeature>();
+		var server = app.Services.GetService<IServer>()!;
+		var addressFeature = server.Features.Get<IServerAddressesFeature>()!;
 
 		if (addressFeature.Addresses?.Count() > 0 is false)
 		{
@@ -69,7 +69,7 @@ Task.Factory.StartNew(async () =>
 		}
 
 		return;
-	}	
+	}
 });
 
 // run

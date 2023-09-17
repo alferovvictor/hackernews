@@ -1,4 +1,5 @@
 ﻿using HackerNews.WebAPI.Entities;
+using HackerNews.WebAPI.Providers;
 
 namespace HackerNews.WebAPI.Repositories;
 
@@ -23,5 +24,5 @@ public class HackerNewsRepository : IHackerNewsProvider
         }
     }
 
-    public IEnumerable<TNewsEntity> NewsByScore() => _newsByScore;
+    public IEnumerable<TNewsEntity> NewsByScore(int count) => count > 0 ? _newsByScore.Take(count) : Array.Empty<TNewsEntity>();
 }

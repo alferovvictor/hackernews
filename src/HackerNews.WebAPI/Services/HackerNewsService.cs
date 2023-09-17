@@ -6,37 +6,37 @@ namespace HackerNews.WebAPI.Services;
 
 public class HackerNewsService
 {
-    private HttpClient _httpClient { get; }
-    private HackerNewsRepository _hackerNewsRepository { get; }
-    private ILogger _logger { get; }
+	private HttpClient _httpClient { get; }
+	private HackerNewsRepository _hackerNewsRepository { get; }
+	private ILogger _logger { get; }
 
-    public HackerNewsService(
-        HttpClient httpClient,
-        HackerNewsRepository hackerNewsRepository,
-        ILogger<HackerNewsService> logger)
-    {
-        _httpClient = httpClient;
-        _logger = logger;
-        _hackerNewsRepository = hackerNewsRepository;
-    }
+	public HackerNewsService(
+		HttpClient httpClient,
+		HackerNewsRepository hackerNewsRepository,
+		ILogger<HackerNewsService> logger)
+	{
+		_httpClient = httpClient;
+		_logger = logger;
+		_hackerNewsRepository = hackerNewsRepository;
+	}
 
-    public async Task Init()
-    {
-        var sw = Stopwatch.StartNew();
+	public async Task Init()
+	{
+		var sw = Stopwatch.StartNew();
 
-        _logger.LogInformation("Init start...");
+		_logger.LogInformation("Init start...");
 
-        var ids = await _httpClient.GetFromJsonAsync<ulong[]>("beststories.json") ?? Array.Empty<ulong>();
+		var ids = await _httpClient.GetFromJsonAsync<ulong[]>("beststories.json") ?? Array.Empty<ulong>();
 
-        var tasks = ids
-            .AsParallel()
-            .Select(id =>
-            {
-                return _httpClient
-                .GetFromJsonAsync<HackerNewsDto>($"item/{id}.json")
-                .ContinueWith(res =>
-                {
-                    var item = res.Result;
+		var tasks = ids
+			.AsParallel()
+			.Select(id =>
+			{
+				return _httpClient
+				.GetFromJsonAsync<HackerNewsSourceDto>($"item/{id}.json")
+				.ContinueWith(res =>
+				{
+					var item = res.Result;
 
 					_logger.LogDebug($"item/{id} loaded");
 
@@ -55,30 +55,30 @@ public class HackerNewsService
 						Title = item.title,
 						Uri = item.url,
 					};
-				});                
-            });
+				});
+			});
 
-        await Task.WhenAll(tasks);
+		await Task.WhenAll(tasks);
 
-        var items = tasks
+		var items = tasks
 			.Select(i => i.Result)
-            .Where(i => i is not null)
-            .ToArray();
+			.Where(i => i is not null)
+			.ToArray();
 
 		_logger.LogInformation($"Total news: {ids.Length}, Loaded: {items.Length}. Elapsed: {sw.Elapsed.TotalSeconds}s");
 
 		_hackerNewsRepository.AddRange(items!);
 
-        _logger.LogInformation("Init end");
-    }
+		_logger.LogInformation("Init end");
+	}
 }
 
-file sealed class HackerNewsDto
+file sealed class HackerNewsSourceDto
 {
-    public string by { get; set; }
-    public string title { get; set; }
-    public string url { get; set; }
-    public long time { get; set; }
-    public int score { get; set; }
-    public int[] kids { get; set; }
+	public string by { get; set; } = string.Empty;
+	public string title { get; set; } = string.Empty;
+	public string url { get; set; } = string.Empty;
+	public long time { get; set; }
+	public int score { get; set; }
+	public int[] kids { get; set; } = Array.Empty<int>();
 }

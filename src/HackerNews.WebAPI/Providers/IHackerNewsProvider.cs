@@ -1,10 +1,10 @@
 ﻿using HackerNews.WebAPI.Entities;
 
-namespace HackerNews.WebAPI.Repositories;
+namespace HackerNews.WebAPI.Providers;
 
 using TNewsEntity = HackerNewsEntity;
 
 public interface IHackerNewsProvider
 {
-    IEnumerable<TNewsEntity> NewsByScore();
+    IEnumerable<TNewsEntity> NewsByScore(int count);
 }
